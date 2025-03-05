@@ -1,0 +1,35 @@
+<div class="upload-container">
+    <mat-card class="upload-card">
+        <mat-card-title>Upload your video</mat-card-title>
+        <mat-card-content>
+            <div class="drop-zone" 
+                [class.dragging]="isDragging"
+                (click)="triggerFileInput()" 
+                (dragover)="onDragOver($event)" 
+                (dragleave)="onDragLeave()"
+                (drop)="onDrop($event)">
+                <mat-icon class="upload-icon">cloud_upload</mat-icon>
+                <p>Drag & Drop or <span>Click to Upload</span></p>
+            </div>
+            <input type="file" (change)="onInputFileSelected($event)" accept="video/mp4" hidden #fileInput />
+        
+            <div *ngIf="selectedFile" class="file-preview">
+                <mat-icon>movie</mat-icon>
+                <p *ngIf="selectedFile" class="file-name">
+                    {{ selectedFile.name | slice:0:20 }}<span *ngIf="selectedFile.name.length > 20">...</span>
+                    <mat-icon class="delete-icon" (click)="clearFile()">close</mat-icon>
+                </p>
+                <p>{{ (selectedFile.size / 1024).toFixed(2) }} KB</p>
+                <button mat-icon-button (click)="clearFile()">
+                    <mat-icon>close</mat-icon>
+                </button>
+            </div>
+        
+            <button mat-raised-button class="download-button" (click)="uploadFile()" *ngIf="selectedFile">
+                <mat-icon>cloud_upload</mat-icon> Download
+            </button>
+        
+            <mat-progress-bar *ngIf="isUploading" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+        </mat-card-content>
+    </mat-card>
+</div>
