@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  mp4-to-gif-backend:
+    image: mp4-to-gif-backend:latest
+    deploy:
+      replicas: 1 # One web server
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_HOST=mp4-to-gif-redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mp4-to-gif-redis
+    networks:
+      - mp4-to-gif.network
+
+  mp4-to-gif-worker:
+    image: mp4-to-gif-worker:latest
+    command: ["node", "dist/workers/videoWorker.js"]
+    deploy:
+      replicas: 5 # Up to 5 workers
+      restart_policy:
+        condition: on-failure
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=mp4-to-gif-redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mp4-to-gif-redis
+    networks:
+      - mp4-to-gif.network
+
+  mp4-to-gif-redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mp4-to-gif.network
+
+networks:
+  mp4-to-gif.network:
+    driver: bridge

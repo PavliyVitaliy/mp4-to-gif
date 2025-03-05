@@ -1,0 +1,32 @@
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# TypeScript cache
+*.tsbuildinfo
+
+# dotenv environment variable files
+.env
+
+# Express.js build output
+dist
+
+# IDEs and editors
+.idea
+
+# docker temp files
+backend.tar
+worker.tar
+
+# tests
+test.js

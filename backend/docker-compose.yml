@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  mp4-to-gif-backend:
+    container_name: mp4-to-gif-backend
+    image: mp4-to-gif-backend
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      mp4-to-gif-redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_HOST=mp4-to-gif-redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+    networks:
+      - mp4-to-gif.network
+
+  mp4-to-gif-redis:
+    container_name: mp4-to-gif-redis
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mp4-to-gif.network
+
+networks:
+  mp4-to-gif.network:
+    driver: bridge
