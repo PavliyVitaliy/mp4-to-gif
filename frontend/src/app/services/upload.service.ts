@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
     providedIn: 'root',
 })
 export class UploadService {
-    private baseUrl = 'http://localhost:3000/api'; //TODO transfer to config
+    private readonly baseUrl = '/api';
 
     constructor(private http: HttpClient) {}
 

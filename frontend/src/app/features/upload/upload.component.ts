@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef } from '@angular/core';
+import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { UploadService } from '../../services/upload.service';
@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
+import { Subscription } from 'rxjs';
 
 const snackBarDuration = 3000;
 const maxVideoWidth = 1024;
@@ -21,7 +22,7 @@ const maxVideoDuration = 10;
     styleUrls: ['./upload.component.scss'],
     imports: [CommonModule, MatCardModule, MatIconModule, MatProgressBarModule, MatButtonModule]
 })
-export class UploadComponent {
+export class UploadComponent implements OnDestroy {
     @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
     uploadForm: FormGroup;
@@ -31,6 +32,8 @@ export class UploadComponent {
     isDragging = false;
     jobId: string | null = null;
     conversionStatus: 'pending' | 'processing' | 'completed' | 'failed' = 'pending';
+    statusMessage = 'Choose a short MP4 video to begin.';
+    private statusSubscription?: Subscription;
 
     constructor(
         private fb: FormBuilder,
@@ -59,7 +62,7 @@ export class UploadComponent {
         this.isDragging = true;
     }
 
-    onDragLeave() {
+    onDragLeave(): void {
         this.isDragging = false;
     }
 
@@ -72,11 +75,18 @@ export class UploadComponent {
         }
     }
 
-    clearFile() {
+    clearFile(): void {
+        this.statusSubscription?.unsubscribe();
         this.selectedFile = null;
         this.jobId = null;
         this.conversionStatus = 'pending';
+        this.statusMessage = 'Choose a short MP4 video to begin.';
         this.fileInput.nativeElement.value = '';
+    }
+
+    ngOnDestroy(): void {
+        this.statusSubscription?.unsubscribe();
+        this.webSocketService.disconnect();
     }
 
     uploadFile(): void {
@@ -88,21 +98,21 @@ export class UploadComponent {
         this.isUploading = true;
         this.uploadProgress = 0;
         this.conversionStatus = 'processing';
+        this.statusMessage = 'Uploading video…';
 
         this.uploadService.uploadFile(this.selectedFile).subscribe({
             next: (response) => {
                 this.jobId = response.jobId;
+                this.statusMessage = 'Queued for conversion…';
                 this.listenForStatus();
             },
             error: (err) => {
                 this.isUploading = false;
                 this.conversionStatus = 'failed';
+                this.statusMessage = 'Upload failed. Please try another file.';
                 this.snackBar.open(`Upload error: ${err.message}`, 'OK', { duration: snackBarDuration });
             },
-            complete: () => {
-                this.isUploading = false;
-                this.snackBar.open('File uploaded successfully!', 'OK', { duration: snackBarDuration });
-            },
+            complete: () => this.isUploading = false,
         });
     }
 
@@ -110,10 +120,16 @@ export class UploadComponent {
         return this.jobId ? this.uploadService.downloadFile(this.jobId) : '';
     }
 
+    get canDownload(): boolean {
+        return this.conversionStatus === 'completed' && Boolean(this.jobId);
+    }
+
     listenForStatus(): void {
-        this.webSocketService.listenForJobStatus().subscribe((data) => {
+        this.statusSubscription?.unsubscribe();
+        this.statusSubscription = this.webSocketService.listenForJobStatus().subscribe((data) => {
             if (data.jobId === this.jobId) {
-                this.conversionStatus = data.status as any;
+                this.conversionStatus = data.status as 'processing' | 'completed' | 'failed';
+                this.statusMessage = data.message || data.status;
                 if (data.status === 'completed') {
                     this.isUploading = false;
                     this.snackBar.open(
@@ -121,6 +137,7 @@ export class UploadComponent {
                         'OK',
                         { duration: snackBarDuration }
                     );
+                    this.statusSubscription?.unsubscribe();
                 }
                 if (data.status === 'failed') {
                     this.isUploading = false;
@@ -129,6 +146,7 @@ export class UploadComponent {
                         'OK',
                         { duration: snackBarDuration }
                     );
+                    this.statusSubscription?.unsubscribe();
                 }
             }
         });
@@ -170,7 +188,7 @@ export class UploadComponent {
 
             this.selectedFile = file;
             this.uploadForm.patchValue({ file });
-            console.log('Selected file:', file);
+            this.statusMessage = 'Ready to convert.';
         };
     }
 }

@@ -1,6 +1,7 @@
 <div class="upload-container">
     <mat-card class="upload-card">
-        <mat-card-title>Upload your video</mat-card-title>
+        <mat-card-title>MP4 to GIF</mat-card-title>
+        <p class="subtitle">Upload a short video and get a shareable GIF.</p>
         <mat-card-content>
             <div class="drop-zone" 
                 [class.dragging]="isDragging"
@@ -9,7 +10,8 @@
                 (dragleave)="onDragLeave()"
                 (drop)="onDrop($event)">
                 <mat-icon class="upload-icon">cloud_upload</mat-icon>
-                <p>Drag & Drop or <span>Click to Upload</span></p>
+                <p>Drag & drop an MP4 or <span>choose a file</span></p>
+                <small>Maximum file size: 50 MB</small>
             </div>
             <input type="file" (change)="onInputFileSelected($event)" accept="video/mp4" hidden #fileInput />
         
@@ -25,9 +27,15 @@
                 </button>
             </div>
         
-            <button mat-raised-button class="download-button" (click)="uploadFile()" *ngIf="selectedFile">
-                <mat-icon>cloud_upload</mat-icon> Download
+            <button mat-raised-button class="download-button" (click)="uploadFile()" *ngIf="selectedFile && !jobId" [disabled]="isUploading">
+                <mat-icon>auto_fix_high</mat-icon> Convert to GIF
             </button>
+
+            <a mat-raised-button class="download-button" *ngIf="canDownload" [href]="getDownloadUrl()">
+                <mat-icon>download</mat-icon> Download GIF
+            </a>
+
+            <p class="status" [attr.data-status]="conversionStatus">{{ statusMessage }}</p>
         
             <mat-progress-bar *ngIf="isUploading" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
         </mat-card-content>
