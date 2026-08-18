@@ -6,6 +6,7 @@ export const config = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     PORT: Number(process.env.PORT) || 3000,
     UPLOAD_DIR: process.env.UPLOAD_DIR || 'uploads',
+    FILE_TTL_SECONDS: Number(process.env.FILE_TTL_SECONDS) || 3600,
 
     LOG_LEVEL: process.env.LOG_LEVEL || 'info',
 
@@ -25,8 +26,8 @@ export const config = {
     },
 
     FFMPEG: {
-        FPS: 5,
-        SIZE: '400x?',
+        FPS: Number(process.env.GIF_FPS) || 5,
+        SIZE: `${Number(process.env.GIF_WIDTH) || -1}x${Number(process.env.GIF_HEIGHT) || 400}`,
         TIMEOUT: 30000,
     },
 

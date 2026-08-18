@@ -1,17 +1,17 @@
 import { Worker } from 'bullmq';
 import path from 'path';
 import { videoQueue, redisConnection } from '../config/redis';
-import { emitStatus } from '../services/websocketService';
 import logger from '../utils/logger';
 import { convertMp4ToGif } from '../services/conversionService';
 import { config } from '../config';
+import { removeFile, startFileCleanup } from '../services/fileCleanupService';
 
 
 redisConnection.ping()
     .then(() => {console.log('Redis connected successfully')})
     .catch((err) => {console.error('Redis connection error:', err)});
 
-const worker = new Worker(
+new Worker(
     videoQueue.name,
     async (job) => {
         const jobId = job.id;
@@ -21,24 +21,21 @@ const worker = new Worker(
             const inputFilePath = job.data.filePath;
             const outputFilePath = path.join(path.dirname(inputFilePath), `${jobId}.gif`);
 
-            emitStatus(jobId!, 'processing', 'Video conversion started');
-
             await convertMp4ToGif(inputFilePath, outputFilePath);
-
-            emitStatus(jobId!, 'completed', 'GIF conversion successful');
+            await removeFile(inputFilePath);
 
             logger.info(`Job ${jobId} completed successfully`);
         } catch (error) {
             const errorMessage = (error as Error).message;
-            emitStatus(job.id!, 'failed', errorMessage);
             logger.error(`Error processing job ${jobId}: ${errorMessage}`);
             throw error;
         }
     },
     { 
         connection: redisConnection,
-        stalledInterval: config.JOBS.TTL_STALLED
+        stalledInterval: config.JOBS.TTL_STALLED * 1000
     }
 );
 
 logger.info('Worker started');
+startFileCleanup();

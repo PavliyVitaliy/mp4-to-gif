@@ -1,6 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import logger from '../utils/logger';
+import { videoQueueEvents } from '../config/redis';
 
 let io: SocketIOServer | null = null;
 
@@ -27,7 +28,7 @@ export const initWebSocket = (server?: HttpServer) => {
             logger.error(`WebSocket Connection Error: ${error.message}`);
         });
 
-        socket.on('disconnect', (reason) => {
+        socket.on('disconnect', () => {
             logger.info(`Client disconnected: ${socket.id}`);
         });
     });
@@ -41,4 +42,10 @@ export const emitStatus = (jobId: string, status: string, message?: string) => {
         return;
     }
     io.emit('jobStatus', { jobId, status, message });
+};
+
+export const bridgeQueueStatuses = () => {
+    videoQueueEvents.on('active', ({ jobId }) => emitStatus(jobId, 'processing', 'Video conversion started'));
+    videoQueueEvents.on('completed', ({ jobId }) => emitStatus(jobId, 'completed', 'GIF is ready to download'));
+    videoQueueEvents.on('failed', ({ jobId, failedReason }) => emitStatus(jobId, 'failed', failedReason));
 };

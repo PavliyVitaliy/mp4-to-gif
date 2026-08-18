@@ -1,10 +1,8 @@
 import http from 'http';
 import app from './app';
 import { config } from './config';
-import { initWebSocket } from './services/websocketService';
+import { bridgeQueueStatuses, initWebSocket } from './services/websocketService';
 import logger from './utils/logger';
-
-import './workers/videoWorker';
 
 const server = http.createServer(app);
 
@@ -13,6 +11,7 @@ server.on('error', (error) => {
 });
 
 initWebSocket(server);
+bridgeQueueStatuses();
 
 server.listen(config.PORT, () => {
     logger.info(`Server running on port ${config.PORT}`);

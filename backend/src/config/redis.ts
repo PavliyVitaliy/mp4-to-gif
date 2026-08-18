@@ -1,4 +1,4 @@
-import { Queue, Worker } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
 import { config } from './index';
 
@@ -15,4 +15,8 @@ export const videoQueue = new Queue('videoQueue', {
         removeOnComplete: { age: config.JOBS.TTL_COMPLETED },
         removeOnFail: { age: config.JOBS.TTL_FAILED }
     }
+});
+
+export const videoQueueEvents = new QueueEvents(videoQueue.name, {
+    connection: redisConnection.duplicate(),
 });

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import fileUpload, { UploadedFile } from 'express-fileupload';
 import logger from '../utils/logger';
 import { processVideo } from '../services/videoService';
+import { validateVideoUpload } from '../services/uploadValidation';
 
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB limit
 
@@ -47,15 +48,10 @@ router.post('/upload', async (req: Request, res: Response): Promise<void> => {
 
     const video = req.files.file as UploadedFile;
 
-    if (video.mimetype !== 'video/mp4') {
-        logger.warn(`Invalid file format: ${video.mimetype}`);
-        res.status(400).json({ error: 'Only MP4 files are allowed' });
-        return;
-    }
-
-    if (video.size > FILE_SIZE_LIMIT) {
-        logger.warn('File size exceeds limit');
-        res.status(413).json({ error: 'File size exceeds 50MB limit' });
+    const validationError = validateVideoUpload(video.name, video.mimetype, video.size);
+    if (validationError) {
+        logger.warn(`Invalid upload: ${validationError}`);
+        res.status(validationError.includes('size') ? 413 : 400).json({ error: validationError });
         return;
     }
 

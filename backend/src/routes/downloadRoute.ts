@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import logger from '../utils/logger';
+import { config } from '../config';
+import { removeFile } from '../services/fileCleanupService';
 
 export const router = Router();
 
@@ -33,7 +35,12 @@ router.get('/download/:jobId', (req: Request, res: Response): void => {
         return;
     }
 
-    const filePath = path.join(__dirname, '../uploads', `${jobId}.gif`);
+    if (!/^[a-zA-Z0-9-]+$/.test(jobId)) {
+        res.status(400).json({ error: 'Invalid job ID' });
+        return;
+    }
+
+    const filePath = path.join(path.resolve(config.UPLOAD_DIR), `${jobId}.gif`);
 
     if (!fs.existsSync(filePath)) {
         logger.warn(`File not found: ${filePath}`);
@@ -42,5 +49,8 @@ router.get('/download/:jobId', (req: Request, res: Response): void => {
     }
 
     logger.info(`Downloading file: ${filePath}`);
-    res.download(filePath);
+    res.download(filePath, 'converted.gif', (error) => {
+        if (error) logger.warn(`Download failed: ${error.message}`);
+        else void removeFile(filePath);
+    });
 });
